@@ -1960,167 +1960,101 @@ function buildDeathScene(scene, THREE, cause) {
   return { group: root, cause, update, dispose };
 }
 
-// ============ 连续东西轴布局(确保地板无缝拼接) ============
-// 一条直线: 卧室[x-13..-5] → 走廊[x-5..14] → 楼梯[x14..19,下楼] → 一楼[x19..28]。全程 z∈[-2,2] 走廊宽,房间更宽。
-const H=3, F1=-3.3, CW=2;   // 层高 / 一楼y / 走廊半宽
-// --- 卧室(x:-13~-5, z:-4~4) ---
-ground(8,0.3,8,-9,-0.15,0);            deco(8,0.2,8,-9,H,0);
-wallB(0.3,H,8,-13,H/2,0);              // 西墙
-// 卧室北墙开门洞(x=-9 宽1.4)通往支线卫生间
-wallB(3.3,H,0.3,-11.35,H/2,-4); wallB(3.3,H,0.3,-6.65,H/2,-4);   // 门左/右段
-wallB(1.4,H-2.1,0.3,-9,H-(H-2.1)/2,-4);                          // 门楣(卫生间门高2.1)
-// === 支线卫生间(卧室北门→北侧,门+z对卧室北墙;科普:小开间承重多=相对安全躲避点) ===
-const BR=buildBathroomRoom(scene,THREE,-9,-5.5);
-{ ground(3.6,0.3,3.2,-9,-0.15,-5.4,BR.floorMat).visible=false;   // 碰撞地板(延伸到卧室接缝,无缝)
-  wallB(3.6,H,0.3,-9,H/2,-7,BR.wallMat).visible=false;           // 北墙
-  wallB(0.3,H,3,-7.2,H/2,-5.5,BR.wallMat).visible=false;         // 东墙
-  wallB(0.3,H,3,-10.8,H/2,-5.5,BR.wallMat).visible=false; }      // 西墙
-// 卧室南墙开门洞(x=-9)通往支线餐厅
-wallB(3.3,H,0.3,-11.35,H/2,4); wallB(3.3,H,0.3,-6.65,H/2,4);    // 门左/右段
-wallB(1.4,H-2.1,0.3,-9,H-(H-2.1)/2,4);                          // 门楣
-// === 支线餐厅(卧室南门→南侧,门-z对卧室南墙;科普:破除"躲餐桌下黄金三角"伪知识) ===
-const DN=buildDiningRoom(scene,THREE,-9,7.5);
-{ ground(8,0.3,7.2,-9,-0.15,7.4,DN.floorMat).visible=false;      // 碰撞地板
-  wallB(8,H,0.3,-9,H/2,11,DN.wallMat).visible=false;             // 餐厅最南墙(z=11)
-  wallB(0.3,H,7,-5,H/2,7.5,DN.wallMat).visible=false;            // 东墙
-  wallB(0.3,H,7,-13,H/2,7.5,DN.wallMat).visible=false; }         // 西墙
-wallB(0.3,H,(4-CW),-5,H/2,-(CW+(4-CW)/2)); // 东墙上段(留门 z∈[-2,2])
-wallB(0.3,H,(4-CW),-5,H/2, (CW+(4-CW)/2));  // 东墙下段
-warmLamp(-9,2.4,0);
-// 卧室精细家具(modules):床/衣柜/碎块,放靠墙不挡逃生路径
-try{ makeBed(scene,THREE,-9,0,-2.2); }catch(e){ console.warn('bed',e); }
-try{ makeWardrobe(scene,THREE,-11.8,0,-2.5); }catch(e){ console.warn('wardrobe',e); }
-try{ makeRubble(scene,THREE,-7,3,14); }catch(e){ console.warn('rubble',e); }
-// 走廊1(卧室→客厅) x[-5,0]
-ground(5,0.3,4,-2.5,-0.15,0); deco(5,0.2,4,-2.5,H,0);
-wallB(5,H,0.3,-2.5,H/2,2);                                       // 走廊1南墙(完整)
-// 走廊1北墙开门洞(x=-2.5)通往支线储藏室
-wallB(1.8,H,0.3,-4.1,H/2,-2); wallB(1.8,H,0.3,-0.9,H/2,-2);     // 门左/右段
-wallB(1.4,H-2.2,0.3,-2.5,H-(H-2.2)/2,-2);                        // 门楣
-// === 支线储藏室(走廊1北门→北侧;科普:堆高杂物倒塌砸人+堵逃生路) ===
-const ST=buildStorageRoom(scene,THREE,-2.5,-4.5);
-{ ground(5,0.3,5.2,-2.5,-0.15,-4.4,ST.floorMat).visible=false;   // 碰撞地板
-  wallB(5,H,0.3,-2.5,H/2,-7,ST.wallMat).visible=false;           // 北墙
-  wallB(0.3,H,5,0,H/2,-4.5,ST.wallMat).visible=false;            // 东墙
-  wallB(0.3,H,5,-5,H/2,-4.5,ST.wallMat).visible=false; }         // 西墙
-warmLamp(-2.5,2.4,0);
-// 客厅(主路径穿过) x[0,9] z[-4,4],西门x=0/东门x=9(z[-2,2])。质感=test_livingroom 破败客厅原样搬入(见 buildLivingRoom)
-const LR=buildLivingRoom(4.5);            // 4.5=客厅中心x;生成 test 质感材质 + 摆入全部家具/碎物/灰尘/点光
-ground(9,0.3,8,4.5,-0.15,0,LR.floorMat);  // 地板:碰撞骨架(grounds)+test 脏旧木纹
-deco(9,0.2,8,4.5,H,0,LR.ceilMat);         // 天花板:test 灰白脏顶
-// 客厅南墙开门洞(x=4.5)通往支线阳台
-wallB(3.8,H,0.3,1.9,H/2,4,LR.wallMat); wallB(3.8,H,0.3,7.1,H/2,4,LR.wallMat);  // 门左/右段
-wallB(1.4,H-2.1,0.3,4.5,H-(H-2.1)/2,4,LR.wallMat);                          // 门楣
-// === 支线阳台(客厅南门→南侧,门-z对客厅南墙;科普:地震绝对别去阳台-悬挑结构最易塌) ===
-const BL=buildBalconyRoom(scene,THREE,4.5,6.5);
-{ ground(7,0.3,5.2,4.5,-0.15,6.4,BL.floorMat).visible=false;     // 碰撞地板(延伸到客厅接缝)
-  wallB(0.3,H,5,8,H/2,6.5,BL.wallMat).visible=false;             // 东墙
-  wallB(0.3,H,5,1,H/2,6.5,BL.wallMat).visible=false;             // 西墙
-  wallB(7,1.2,0.3,4.5,0.6,9,BL.wallMat).visible=false; }         // 朝外女儿墙(矮,防玩家坠出阳台)
-// 客厅北墙开门洞(x=4.5 宽1.4)通往支线厨房——拆成门左/右段+门楣
-wallB(3.8,H,0.3,1.9,H/2,-4,LR.wallMat); wallB(3.8,H,0.3,7.1,H/2,-4,LR.wallMat);
-wallB(1.4,H-2.2,0.3,4.5,H-(H-2.2)/2,-4,LR.wallMat);                         // 门楣
-// === 支线厨房(客厅北门 → 北侧厨房,迷宫支线探索) ===
-const KT=buildKitchenRoom(scene,THREE,4.5,-6.0);                            // 厨房中心,南墙门洞贴客厅北墙 z=-4
-{ // 厨房碰撞层(函数只画视觉,这里加 visible=false 的"能踩能撞"层;厨房宽5深4,中心x4.5 z-6)
-  const g=ground(5,0.3,4.2,4.5,-0.15,-5.9,KT.floorMat); g.visible=false;    // 地板(延伸到客厅接缝处,无缝可走)
-  const a=wallB(5,H,0.3,4.5,H/2,-8,KT.wallMat); a.visible=false;            // 厨房北墙
-  const b=wallB(0.3,H,4,7,H/2,-6,KT.wallMat); b.visible=false;              // 厨房东墙
-  const c=wallB(0.3,H,4,2,H/2,-6,KT.wallMat); c.visible=false;              // 厨房西墙
-}
-wallB(0.3,H,2,0,H/2,-3,LR.wallMat); wallB(0.3,H,2,0,H/2,3,LR.wallMat);      // 西墙(留门 z[-2,2] 接走廊1)
-wallB(0.3,H,2,9,H/2,-3,LR.wallMat); wallB(0.3,H,2,9,H/2,3,LR.wallMat);      // 东墙(留门 z[-2,2] 接走廊2)
-// 走廊2(客厅→楼梯) x[9,15]
-ground(6,0.3,4,12,-0.15,0); deco(6,0.2,4,12,H,0);
-// 走廊2南墙开门洞(x=11)→批2路径B次楼梯
-wallB(1.25,H,0.3,9.625,H/2,2); wallB(3.25,H,0.3,13.375,H/2,2);  // 门左/右段
-wallB(1.5,H-2.2,0.3,11,H-(H-2.2)/2,2);                          // 门楣
-// 走廊2北墙开门洞(x=12)通往支线儿童房
-wallB(2.3,H,0.3,10.15,H/2,-2); wallB(2.3,H,0.3,13.85,H/2,-2);   // 门左/右段
-wallB(1.4,H-2.2,0.3,12,H-(H-2.2)/2,-2);                          // 门楣
-// === 支线儿童房(走廊2北门→北侧;护住孩子头颈+情感冲击) ===
-const KR=buildKidsRoom(scene,THREE,12,-5.5);
-{ ground(7,0.3,7.2,12,-0.15,-5.4,KR.floorMat).visible=false;     // 碰撞地板
-  wallB(7,H,0.3,12,H/2,-9,KR.wallMat).visible=false;             // 北墙
-  wallB(0.3,H,7,15.5,H/2,-5.5,KR.wallMat).visible=false;         // 东墙
-  wallB(0.3,H,7,8.5,H/2,-5.5,KR.wallMat).visible=false; }        // 西墙
-warmLamp(12,2.4,0);
-// 楼梯 x[15,20] 下楼
-const SN=9, SR=(0-F1)/SN, SRUN=(20-15)/SN;
-for(let i=0;i<SN;i++){ const topY=-(i+1)*SR; const x=15+0.27+i*SRUN;
-  ground(SRUN+0.02,0.3,4,x,topY-0.15,0,mStep); }
-wallB((20-15),H,0.3,17.5,H/2-1.5,-2); wallB((20-15),H,0.3,17.5,H/2-1.5,2);
-warmLamp(17.5,1.0,0);
-// 楼梯黑铁栏杆:两侧 z=±1.7 跟着台阶逐级下降。设计思路——每级竖一根立柱(0.9高),
-//   立柱顶之间架一段斜扶手(顺楼梯坡度倾斜),就是真实楼梯扶手的最简结构。
-//   用 deco(纯装饰不进 walls)=不挡 z=0 中央下楼通道;台阶本身一根没动,保住"无缝真下楼"。
-const mIron=new THREE.MeshStandardMaterial({color:0x16161a,metalness:0.55,roughness:0.5});
-const rampA=Math.atan2(SR,SRUN);   // 楼梯坡度角:扶手按这个角度斜下去
-for(const sz of [-1.7,1.7]){       // 左右两侧栏杆
-  for(let i=0;i<SN;i++){ const topY=-(i+1)*SR; const x=15+0.27+i*SRUN;
-    deco(0.05,0.9,0.05, x,topY+0.45,sz, mIron);                              // 立柱(每级一根)
-    const rail=deco(Math.hypot(SRUN,SR)+0.02,0.05,0.05, x+SRUN/2,topY+0.9-SR/2,sz, mIron); // 斜扶手段
-    rail.rotation.z=-rampA;
-  }
-}
-// 一楼 x[20,29]
-ground(9,0.3,4,24.5,F1-0.15,0); deco(9,0.2,4,24.5,F1+H,0);
-// 一楼南墙开门洞(x=24.5)→一楼公共区·书房
-wallB(3.75,H,0.3,21.875,F1+H/2,2); wallB(3.75,H,0.3,27.125,F1+H/2,2);  // 门左/右段
-wallB(1.5,H-2.2,0.3,24.5,F1+H-(H-2.2)/2,2);                    // 门楣
-// === 一楼公共区·书房(Group托盘转180°门朝北对一楼南墙;科普:高书架倒塌压人) ===
-const stG=new THREE.Group(); buildStudyRoom(stG,THREE,0,0); stG.position.set(24.5,F1,5); stG.rotation.y=Math.PI; scene.add(stG);
-{ ground(6,0.3,6.2,24.5,F1-0.15,5.1).visible=false;            // 碰撞地板(延伸接一楼无缝)
-  wallB(6,H,0.3,24.5,F1+H/2,8).visible=false;                  // 书房南墙
-  wallB(0.3,H,6,27.5,F1+H/2,5).visible=false; wallB(0.3,H,6,21.5,F1+H/2,5).visible=false; } // 东西墙
-// === 楼道(Group托盘填充路径B侧大堂:信箱/自行车/灭火器,把空大堂变成有料的公共楼道) ===
-const coG=new THREE.Group(); buildCorridorRoom(coG,THREE,0,0); coG.position.set(11,F1,9.3); scene.add(coG);
-// === 邻居家虚掩门(一楼大堂西侧,自带门框+门后浅景;叙事:瞥见邻居没逃出的客厅) ===
-const nbG=new THREE.Group(); buildNeighborHome(nbG,THREE,0,0); nbG.position.set(20.4,F1,0); nbG.rotation.y=Math.PI/2; scene.add(nbG);
-// 一楼北墙开门洞(x=24.5)→一楼公共区·电梯厅
-wallB(3.75,H,0.3,21.875,F1+H/2,-2); wallB(3.75,H,0.3,27.125,F1+H/2,-2);  // 门左/右段
-wallB(1.5,H-2.2,0.3,24.5,F1+H-(H-2.2)/2,-2);                    // 门楣
-// === 一楼公共区·电梯厅(诱饵死路;科普:地震绝对禁乘电梯) ===
-// Group托盘技巧:电梯厅函数建在二楼层(y=0),传一个 Group 当 scene 接住它的物体,再整体搬到一楼层 y=F1
-const elG=new THREE.Group(); buildElevatorHall(elG,THREE,0,0); elG.position.set(24.5,F1,-6); scene.add(elG);
-{ ground(7,0.3,8.2,24.5,F1-0.15,-5.9).visible=false;           // 碰撞地板(一楼层,延伸接一楼无缝)
-  wallB(7,H,0.3,24.5,F1+H/2,-10).visible=false;                // 电梯厅北墙
-  wallB(0.3,H,8,28,F1+H/2,-6).visible=false;                   // 东墙
-  wallB(0.3,H,8,21,F1+H/2,-6).visible=false; }                 // 西墙
-warmLamp(23,F1+2.4,0); warmLamp(27,F1+2.4,0);
-deco(0.3,2.4,3,29,F1+1.2,0,mExit);
-const EXIT={x:28.5,z:0};
-// ============ 批2 路径B:次楼梯(走廊2南门 x=11 → 往南下楼 → 一楼侧大堂 → 侧门②) ============
-const SN2=9, SR2=(0-F1)/SN2, SD=5/SN2;           // 9级,沿+z(南)下,每级降SR2进深SD
-for(let i=0;i<SN2;i++){ const topY=-(i+1)*SR2; const z=2.1+i*SD;
-  ground(3,0.3,SD+0.02,11,topY-0.15,z,mStep); }  // 次楼梯台阶(沿z下,无缝接走廊2南门)
-wallB(0.3,H,5.5,9.3,H/2-1.5,4.75); wallB(0.3,H,5.5,12.7,H/2-1.5,4.75);  // 次楼梯东西墙
-// 一楼侧大堂(次楼梯落点,y=F1) + 侧门②
-ground(6,0.3,6,11,F1-0.15,9.8,mStep);            // 落地大堂地板
-wallB(0.3,H,6,14,F1+H/2,9.8);                                   // 侧大堂东墙(完整)
-// 侧大堂西墙开门洞(z=9.8)→路径C室外逃生梯/平台→出口③
-wallB(0.3,H,2.25,8,F1+H/2,7.925); wallB(0.3,H,2.25,8,F1+H/2,11.675);  // 门前/后段
-wallB(0.3,H-2.2,1.5,8,F1+H-(H-2.2)/2,9.8);                     // 门楣
-ground(5,0.3,4,5.5,F1-0.15,9.8,mStep);                         // 西平台(接侧大堂西门,室外逃生梯落地)
-wallB(5,H,0.3,5.5,F1+H/2,7.8); wallB(5,H,0.3,5.5,F1+H/2,11.8); // 平台南/北墙
-warmLamp(5.5,F1+2.2,9.8);
-deco(0.3,2.4,3,3,F1+1.2,9.8,mExit);                            // 出口③(绿门,西端=室外)
-const EXIT3={x:3.7,z:9.8};
-wallB(6,H,0.3,11,F1+H/2,12.8);                   // 大堂南墙(侧门在此)
-warmLamp(11,F1+2.2,9.5);
-deco(2.2,2.4,0.3,11,F1+1.2,12.8,mExit);          // 侧门②(绿色出口)
-const EXIT2={x:11,z:12};
+
+// ============ 网格迷宫布局(口字环廊九宫格;删旧直线主干,蓝图竞标版) ============
+// 中央客厅(枢纽四门)外包一圈口字环廊(=迷宫环路),八房间环绕,2楼梯下一楼,一楼分3出口。
+const H=3, F1=-3.3;
+const mIron=new THREE.MeshStandardMaterial({color:0x16161a,metalness:0.55,roughness:0.5}); // 楼梯黑铁栏杆
+
+// —— 中央客厅(枢纽 9×8,中心(0,0),四面各开宽2门洞) ——
+const LR=buildLivingRoom(0);
+ground(9,0.3,8,0,-0.15,0,LR.floorMat); deco(9,0.2,8,0,H,0,LR.ceilMat);
+wallB(3.5,H,0.3,-2.75,H/2,-4,LR.wallMat); wallB(3.5,H,0.3,2.75,H/2,-4,LR.wallMat); wallB(2,0.8,0.3,0,2.6,-4,LR.wallMat); // 北门z=-4
+wallB(3.5,H,0.3,-2.75,H/2,4,LR.wallMat);  wallB(3.5,H,0.3,2.75,H/2,4,LR.wallMat);  wallB(2,0.8,0.3,0,2.6,4,LR.wallMat);  // 南门z=4
+wallB(0.3,H,3,-4.5,H/2,-2.5,LR.wallMat); wallB(0.3,H,3,-4.5,H/2,2.5,LR.wallMat); wallB(0.3,0.8,2,-4.5,2.6,0,LR.wallMat); // 西门x=-4.5
+wallB(0.3,H,3,4.5,H/2,-2.5,LR.wallMat);  wallB(0.3,H,3,4.5,H/2,2.5,LR.wallMat);  wallB(0.3,0.8,2,4.5,2.6,0,LR.wallMat); // 东门x=4.5
+
+// —— 口字环廊(4段地板,四角重叠自动闭合=可绕外环or穿客厅=迷宫环路) ——
+ground(14.2,0.3,2.6,0,-0.15,-5.3);   // 北廊 z[-6.6,-4]
+ground(14.2,0.3,2.6,0,-0.15,5.3);    // 南廊 z[4,6.6]
+ground(2.6,0.3,13.2,-5.8,-0.15,0);   // 西廊 x[-7.1,-4.5]
+ground(2.6,0.3,13.2,5.8,-0.15,0);    // 东廊 x[4.5,7.1]
+warmLamp(0,2.4,-5.3); warmLamp(0,2.4,5.3); warmLamp(-5.8,2.4,0); warmLamp(5.8,2.4,0);
+
+// —— 卧室(起点★,8×8,中心(0,-10.6),南门z=-6.6接北廊) ——
+ground(8,0.3,8,0,-0.15,-10.6); deco(8,0.2,8,0,H,-10.6);
+wallB(8,H,0.3,0,H/2,-14.6); wallB(0.3,H,8,-4,H/2,-10.6); wallB(0.3,H,8,4,H/2,-10.6); // 北/西/东墙
+wallB(3,H,0.3,-2.5,H/2,-6.6); wallB(3,H,0.3,2.5,H/2,-6.6); wallB(2,0.8,0.3,0,2.6,-6.6); // 南墙留门→北廊
+try{makeBed(scene,THREE,0,0,-12.6);}catch(e){console.warn('bed',e);}      // 床(北墙下)
+try{makeWardrobe(scene,THREE,-3.2,0,-13.4);}catch(e){console.warn('wd',e);} // 高衣柜(西北角,远离安全圈)
+warmLamp(0,2.4,-10.6);
+
+// —— 三出口判定点(蓝图最终坐标;一楼楼道/楼梯下一步加,先定义防玩法段引用报错) ——
+const EXIT={x:0,z:9.5}, EXIT2={x:11.6,z:5}, EXIT3={x:-11.6,z:5};
+
+// —— 北行房间(儿童房/书房,默认南门z=-6.6接北廊,不用转) ——
+buildKidsRoom(scene,THREE,-7.5,-10.1);     // 儿童房7×7
+ground(7,0.3,7,-7.5,-0.15,-10.1).visible=false;
+wallB(7,H,0.3,-7.5,H/2,-13.6).visible=false; wallB(0.3,H,7,-4,H/2,-10.1).visible=false; wallB(0.3,H,7,-11,H/2,-10.1).visible=false;
+wallB(2.5,H,0.3,-9.75,H/2,-6.6).visible=false; wallB(2.5,H,0.3,-5.25,H/2,-6.6).visible=false; // 南墙留门x[-8.5,-6.5]
+buildStudyRoom(scene,THREE,7.5,-9.6);      // 书房6×6
+ground(6,0.3,6,7.5,-0.15,-9.6).visible=false;
+wallB(6,H,0.3,7.5,H/2,-12.6).visible=false; wallB(0.3,H,6,10.5,H/2,-9.6).visible=false; wallB(0.3,H,6,4.5,H/2,-9.6).visible=false;
+wallB(2,H,0.3,5.5,H/2,-6.6).visible=false; wallB(2,H,0.3,9.5,H/2,-6.6).visible=false; // 南墙留门x[6.5,8.5]
+
+// —— 中行(储藏室→西廊转-90 / 卫生间→东廊转+90) ——
+const stoG=new THREE.Group(); buildStorageRoom(stoG,THREE,0,0); stoG.position.set(-9.6,0,0); stoG.rotation.y=-Math.PI/2; scene.add(stoG); // 转-90:门朝东对西廊
+ground(5,0.3,5,-9.6,-0.15,0).visible=false;
+wallB(0.3,H,5,-12.1,H/2,0).visible=false; wallB(5,H,0.3,-9.6,H/2,-2.5).visible=false; wallB(5,H,0.3,-9.6,H/2,2.5).visible=false; // 西/北/南墙
+wallB(0.3,H,1.5,-7.1,H/2,-1.75).visible=false; wallB(0.3,H,1.5,-7.1,H/2,1.75).visible=false; // 东墙留门z[-1,1]→西廊
+const batG=new THREE.Group(); buildBathroomRoom(batG,THREE,0,0); batG.position.set(8.6,0,-1); batG.rotation.y=Math.PI/2; scene.add(batG); // 转+90:门朝西对东廊
+ground(3,0.3,3.6,8.6,-0.15,-1).visible=false;
+wallB(0.3,H,3.6,10.1,H/2,-1).visible=false; wallB(3,H,0.3,8.6,H/2,-2.8).visible=false; wallB(3,H,0.3,8.6,H/2,0.8).visible=false; // 东/北/南墙
+wallB(0.3,H,0.8,7.1,H/2,-2.4).visible=false; wallB(0.3,H,0.8,7.1,H/2,0.4).visible=false; // 西墙留门z[-2,0]→东廊
+
+// —— 南行(厨房/餐厅→南廊转180;阳台门本朝内不用转) ——
+const kitG=new THREE.Group(); buildKitchenRoom(kitG,THREE,0,0); kitG.position.set(-7,0,8.6); kitG.rotation.y=Math.PI; scene.add(kitG); // 转180:门朝北对南廊
+ground(5,0.3,4,-7,-0.15,8.6).visible=false;
+wallB(0.3,H,4,-9.5,H/2,8.6).visible=false; wallB(0.3,H,4,-4.5,H/2,8.6).visible=false; wallB(5,H,0.3,-7,H/2,10.6).visible=false; // 西/东/南墙
+wallB(1.5,H,0.3,-8.75,H/2,6.6).visible=false; wallB(1.5,H,0.3,-5.25,H/2,6.6).visible=false; // 北墙留门x[-8,-6]→南廊
+const dinG=new THREE.Group(); buildDiningRoom(dinG,THREE,0,0); dinG.position.set(0,0,10.1); dinG.rotation.y=Math.PI; scene.add(dinG); // 转180:门朝北对南廊
+ground(8,0.3,7,0,-0.15,10.1).visible=false;
+wallB(0.3,H,7,-4,H/2,10.1).visible=false; wallB(0.3,H,7,4,H/2,10.1).visible=false; wallB(8,H,0.3,0,H/2,13.6).visible=false; // 西/东/南墙
+wallB(3,H,0.3,-2.5,H/2,6.6).visible=false; wallB(3,H,0.3,2.5,H/2,6.6).visible=false; // 北墙留门x[-1,1]→南廊
+buildBalconyRoom(scene,THREE,8,9.1);      // 阳台门本朝内(-z)→正对南廊,不用转
+ground(7,0.3,5,8,-0.15,9.1).visible=false;
+wallB(0.3,H,5,4.5,H/2,9.1).visible=false; wallB(0.3,H,5,11.5,H/2,9.1).visible=false; wallB(7,1.2,0.3,8,0.6,11.6).visible=false; // 西/东墙+外侧矮栏杆(防坠)
+wallB(2.5,H,0.3,5.75,H/2,6.6).visible=false; wallB(2.5,H,0.3,10.25,H/2,6.6).visible=false; // 北墙留门x[7,9]→南廊
+
+// —— 两部楼梯(南廊东/西端外侧,沿x下楼,z中心5避开所有房间) ——
+const SN=9, SR=(0-F1)/SN, SRUN=5/SN;
+for(let i=0;i<SN;i++){const topY=-(i+1)*SR;
+  ground(SRUN+0.02,0.3,2.6,7.1+0.27+i*SRUN,topY-0.15,5,mStep);    // 主楼梯E:南廊东端→+x下
+  ground(SRUN+0.02,0.3,2.6,-7.1-0.27-i*SRUN,topY-0.15,5,mStep);}  // 次楼梯W:南廊西端→-x下
+wallB(5,H,0.3,9.6,H/2-1.5,3.7).visible=false; wallB(5,H,0.3,9.6,H/2-1.5,6.3).visible=false;   // 主梯井南北墙
+wallB(5,H,0.3,-9.6,H/2-1.5,3.7).visible=false; wallB(5,H,0.3,-9.6,H/2-1.5,6.3).visible=false; // 次梯井南北墙
+
+// —— 一楼公共楼道(y=F1,贯通接两楼梯落点±11.1,5) + 三出口 ——
+ground(24.2,0.3,8,0,F1-0.15,5); deco(24.2,0.2,8,0,F1+H,5);   // 楼道 x[-12.1,12.1] z[1,9]
+wallB(24.2,H,0.3,0,F1+H/2,1).visible=false;                  // 北墙(电梯厅在更北,下步开门)
+wallB(11,H,0.3,-6.1,F1+H/2,9); wallB(11,H,0.3,6.1,F1+H/2,9); // 南墙留正门①(x[-1,1])
+wallB(0.3,H,3,12.1,F1+H/2,2.5); wallB(0.3,H,3,12.1,F1+H/2,7.5);    // 东墙留侧门②(z[4,6])
+wallB(0.3,H,3,-12.1,F1+H/2,2.5); wallB(0.3,H,3,-12.1,F1+H/2,7.5);  // 西墙留逃生梯③(z[4,6])
+warmLamp(-6,F1+2.4,5); warmLamp(6,F1+2.4,5);
+deco(2,2.4,0.3,0,F1+1.2,9,mExit);       // 正门①(南) → EXIT(0,9.5)
+deco(0.3,2.4,2,12.1,F1+1.2,5,mExit);    // 侧门②(东) → EXIT2(11.6,5)
+deco(0.3,2.4,2,-12.1,F1+1.2,5,mExit);   // 逃生梯③(西) → EXIT3(-11.6,5)
 
 // ============ 第一人称 + 射线地面跟随 + 墙碰撞 ============
 const EYE=1.6;
-let player=new THREE.Vector3(-9,EYE,0);
-let yaw=-Math.PI/2,pitch=-0.05,locked=false;const keys={};   // 朝东(门口方向)
+let player=new THREE.Vector3(0,EYE,-12);
+let yaw=Math.PI,pitch=-0.05,locked=false;const keys={};   // 朝南(正对卧室门→北廊,逃生方向)
 let won=false;
 let phase='wake', shake=0, quakeT=0, hazards=[], sinceSpawn=0;
 // 过场场景状态:死亡黑盒/室外结局靠"切场景"实现——dead/won 时相机切到地下深处的展台/室外楼,
 //   bgBak/fogBak 备份正常游戏的天空/雾(过场会改氛围),复活/重开时还原。cinemaT=过场累计秒(驱动落灰等)。
 let deathFx=null,exitFx=null,bgBak=null,fogBak=null,cinemaT=0;
-const startPos=new THREE.Vector3(-9,EYE,0);
+const startPos=new THREE.Vector3(0,EYE,-12);
 // ===== 存活鉴定数据(贯穿一局,通关后据此打分) =====
 // 把一局里"做对/做错了什么"记进这个对象;通关时 showReport() 读它算 A+~D 评级。
 //   quakeMs/escapeMs : 地震开始 / 逃出门 的时间戳(算逃生用时)
@@ -2133,7 +2067,7 @@ function resetStats(){stats={quakeMs:0,escapeMs:0,nearMiss:0,tookCover:null,elev
 // 地震真实守则:剧烈摇晃中最危险的动作就是站起来往外跑。本关把这条焊进身体——
 //   主震(MAIN_SHOCK 秒)期间必须退到床边"安全圈"蹲住护头;暴露在外=密集坠物砸落=死。
 const MAIN_SHOCK=6;                  // 主震持续秒数:这段时间必须就近躲避,不能往外冲
-const SAFE={x:-8.6,z:-1.6,r:1.35};   // 床边安全位(刻意避开会倒的高衣柜):蹲这儿护头=活
+const SAFE={x:0.8,z:-12.6,r:1.35};   // 卧室床东南安全位(离高衣柜>1.2m):蹲这儿护头=活
 let coverHeld=0,mainShockDone=false; // coverHeld=已在安全圈蹲了多久;mainShockDone=主震是否已结束(一次性切换守卫)
 // 安全圈地面标记:绿色脉动光环(区别于红色危险圈),告诉玩家"蹲这里"
 // safeGroup=不旋转的父容器(整体控制显隐);内含平铺的发光环 + 一束朝上的淡绿光柱。
@@ -2145,16 +2079,16 @@ safeBeam.position.y=1.3;safeGroup.add(safeBeam);              // 竖直光柱:�
 // ===== 关③:电梯诱惑(地震绝不能坐电梯) =====
 // 真实知识:地震时电梯会瞬间断电、井道变形把人卡死,是逃生大忌。本关在走廊2北墙放一部"还亮着"的电梯,
 //   呼叫按钮脉动发光引诱你靠近;一旦走进它=坠入断电卡死的铁棺材(die)。绕开走楼梯=报告卡记一笔"明智"。
-const ELEV={x:12,z:-1.5,r:1.0};   // 电梯触发点:贴北墙(z=-2)电梯门前;玩家正常沿z≈0走过=安全,主动凑近才中招
+const ELEV={x:0,z:2.5,r:1.2};   // 电梯触发点:一楼楼道北侧电梯门前;下楼后凑近=中招,去出口=避开
 let elevBtn=null;                  // 呼叫按钮(脉动发光用)
 (function buildElevator(){
-  const wz=-1.98;                  // 贴 corridor2 北墙内侧
+  const wz=1;                      // 搬到一楼楼道北墙(z=1),门朝南对楼道;y 全部 +F1 下沉到一楼
   const frameMat=new THREE.MeshStandardMaterial({color:0x26282c,roughness:0.5,metalness:0.85});
   const doorMat=new THREE.MeshStandardMaterial({color:0x3a3d42,roughness:0.32,metalness:0.92});
-  const fr=new THREE.Mesh(new THREE.BoxGeometry(1.74,2.34,0.16),frameMat);fr.position.set(ELEV.x,1.17,wz);fr.castShadow=true;scene.add(fr);
-  const dark=new THREE.Mesh(new THREE.BoxGeometry(1.32,2.02,0.05),new THREE.MeshStandardMaterial({color:0x040406,roughness:1}));dark.position.set(ELEV.x,1.12,wz+0.04);scene.add(dark); // 门内黑暗竖井
-  for(const s of [-1,1]){const d=new THREE.Mesh(new THREE.BoxGeometry(0.6,2.0,0.08),doorMat);d.position.set(ELEV.x+s*0.46,1.12,wz+0.1);d.castShadow=true;scene.add(d);} // 两扇半开金属门
-  elevBtn=new THREE.Mesh(new THREE.CircleGeometry(0.075,18),new THREE.MeshBasicMaterial({color:0xffb020}));elevBtn.position.set(ELEV.x+1.0,1.25,wz+0.12);scene.add(elevBtn); // 发光呼叫按钮(诱惑)
+  const fr=new THREE.Mesh(new THREE.BoxGeometry(1.74,2.34,0.16),frameMat);fr.position.set(ELEV.x,F1+1.17,wz);fr.castShadow=true;scene.add(fr);
+  const dark=new THREE.Mesh(new THREE.BoxGeometry(1.32,2.02,0.05),new THREE.MeshStandardMaterial({color:0x040406,roughness:1}));dark.position.set(ELEV.x,F1+1.12,wz+0.04);scene.add(dark); // 门内黑暗竖井
+  for(const s of [-1,1]){const d=new THREE.Mesh(new THREE.BoxGeometry(0.6,2.0,0.08),doorMat);d.position.set(ELEV.x+s*0.46,F1+1.12,wz+0.1);d.castShadow=true;scene.add(d);} // 两扇半开金属门
+  elevBtn=new THREE.Mesh(new THREE.CircleGeometry(0.075,18),new THREE.MeshBasicMaterial({color:0xffb020}));elevBtn.position.set(ELEV.x+1.0,F1+1.25,wz+0.12);scene.add(elevBtn); // 发光呼叫按钮(诱惑)
 })();
 // WebAudio 地鸣
 let ac=null,rg=null;
@@ -2206,7 +2140,7 @@ function showReport(){
   O('report').style.display='flex';
 }
 O('rretry').onclick=()=>{startGame();renderer.domElement.requestPointerLock&&renderer.domElement.requestPointerLock();};
-function startGame(){phase='wake';won=false;quakeT=0;shake=0;clearHazards();player.copy(startPos);yaw=-Math.PI/2;pitch=-0.05;resetStats();coverHeld=0;mainShockDone=false;safeGroup.visible=false;O('report').style.display='none';
+function startGame(){phase='wake';won=false;quakeT=0;shake=0;clearHazards();player.copy(startPos);yaw=Math.PI;pitch=-0.05;resetStats();coverHeld=0;mainShockDone=false;safeGroup.visible=false;O('report').style.display='none';
   if(deathFx){deathFx.dispose();deathFx=null;}                      // 清死亡展台(释放显存)
   if(exitFx){scene.remove(exitFx.root);exitFx=null;}               // 清室外结局
   if(bgBak!==null){scene.background=bgBak;bgBak=null;}             // 还原正常游戏天空
@@ -2224,6 +2158,7 @@ document.getElementById('b').onclick=()=>{initAudio();document.getElementById('s
 O('dretry').onclick=()=>{startGame();renderer.domElement.requestPointerLock&&renderer.domElement.requestPointerLock();};
 function canMove(from,to){const dir=new THREE.Vector3().subVectors(to,from);const dist=dir.length();if(dist<1e-5)return true;dir.normalize();
   wallRay.set(new THREE.Vector3(from.x,from.y-0.7,from.z),dir);wallRay.far=dist+0.3;return wallRay.intersectObjects(walls,false).length===0;}
+// 【重构期调试钩子,完工前删】__top 拉高空俯视整体结构, __view 瞬移相机看任意点
 const clock=new THREE.Clock();
 // stepGame(dt):一帧游戏逻辑(移动/地面跟随/地震/坠落物/通关/渲染)。抽出来便于手动单步验证;animate 负责 rAF 节奏。
 function stepGame(dt){
@@ -2274,8 +2209,8 @@ function stepGame(dt){
   // 关③:电梯诱惑——发亮的电梯井在召唤;走近=坠入断电卡死的铁棺材,绕开走楼梯=明智
   if(elevBtn)elevBtn.material.color.setRGB(1,0.55+0.35*Math.sin(performance.now()*0.005),0.08); // 按钮脉动发光
   if(phase==='quake'&&!won&&stats.elevatorAvoided===null){
-    if(Math.hypot(player.x-ELEV.x,player.z-ELEV.z)<ELEV.r){stats.elevatorAvoided=false;die('你冲进了电梯——地震中电梯会瞬间断电、井道变形卡死,变成下不去也出不来的铁棺材。','坠入电梯井','地震时永远走楼梯,绝不坐电梯——电梯一断电就成了出不来的铁棺材。');}
-    else if(player.x>16){stats.elevatorAvoided=true;setObj('✓ 没坐电梯,明智!地震时电梯随时断电卡死——永远走楼梯下去。');} // 上了楼梯=避开了电梯
+    if(player.y<-1&&Math.hypot(player.x-ELEV.x,player.z-ELEV.z)<ELEV.r){stats.elevatorAvoided=false;die('你冲进了电梯——地震中电梯会瞬间断电、井道变形卡死,变成下不去也出不来的铁棺材。','坠入电梯井','地震时永远走楼梯,绝不坐电梯——电梯一断电就成了出不来的铁棺材。');}
+    else if(player.y<-1&&Math.hypot(player.x-ELEV.x,player.z-ELEV.z)>4){stats.elevatorAvoided=true;setObj('✓ 没坐电梯,明智!地震时电梯随时断电卡死——永远走楼梯下去。');} // 下楼后远离电梯=避开
   }
   if(!won&&(Math.hypot(player.x-EXIT.x,player.z-EXIT.z)<1.8||Math.hypot(player.x-EXIT2.x,player.z-EXIT2.z)<1.8||Math.hypot(player.x-EXIT3.x,player.z-EXIT3.z)<1.8)){won=true;  // 多出口:正门①/侧门②/逃生梯③任一
     bgBak=scene.background;fogBak=scene.fog;scene.fog=null;          // 关雾,别让室内浓雾染暗明亮室外
